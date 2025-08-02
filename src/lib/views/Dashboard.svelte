@@ -182,6 +182,38 @@
         {/if}
       </div>
     </div>
+
+    <!-- Detailed Network Info -->
+    {#if $networkStats}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">DHT Information</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-gray-600">DHT Enabled:</span>
+            <span class="font-medium">{$networkStats.dht?.enabled ? 'Yes' : 'No'}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">DHT Peers:</span>
+            <span class="font-medium">{$networkStats.dht?.peer_count || 0}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Peer List</h3>
+        {#if $networkStats.peer_list && $networkStats.peer_list.length > 0}
+          <div class="space-y-2 text-sm font-mono bg-gray-50 p-3 rounded-lg max-h-48 overflow-y-auto">
+            {#each $networkStats.peer_list as peer}
+              <div class="truncate" title={peer}>{peer}</div>
+            {/each}
+          </div>
+        {:else}
+          <p class="text-gray-500 text-center py-4">No peers in list</p>
+        {/if}
+      </div>
+    </div>
+    {/if}
   </div>
 {/if}
 
