@@ -21,29 +21,36 @@
     });
 
     const pinsPromise = $api.listPins()
-        .then(pinHashes => Promise.all((pinHashes as unknown as string[]).map(hash => $api.getContentInfo(hash))))
+        .then(pinHashes => {
+            if (!pinHashes || !Array.isArray(pinHashes)) {
+                return Promise.resolve([]);
+            }
+            return Promise.all(pinHashes.map(hash => $api.getContentInfo(hash)));
+        })
         .catch(err => {
             console.error('Failed to load pin details:', err);
             return []; // Return empty array on failure
         });
 
     // Wait for both content and pins to be fetched
-    const [contentData, pinDetails] = await Promise.all([contentPromise, pinsPromise]);
+    const [contentResponse, pinDetails] = await Promise.all([contentPromise, pinsPromise]);
+
+    const contentData = contentResponse || [];
     
     contentList.set(contentData);
-    pinnedList.set(pinDetails);
+    pinnedList.set(pinDetails || []);
 
     // --- Calculate Combined Stats ---
     const allContent = new Map();
     contentData.forEach(item => allContent.set(item.hash, item));
-    pinDetails.forEach(item => allContent.set(item.hash, item));
+    (pinDetails || []).forEach(item => allContent.set(item.hash, item));
 
     const uniqueContent = Array.from(allContent.values());
     
-    const total_size = uniqueContent.reduce((acc, item) => acc + item.size, 0);
+    const total_size = uniqueContent.reduce((acc, item) => acc + (item.size || 0), 0);
     const total_content = uniqueContent.length;
-    const pinned_size = pinDetails.reduce((acc, item) => acc + item.size, 0);
-    const pinned_content = pinDetails.length;
+    const pinned_size = (pinDetails || []).reduce((acc, item) => acc + (item.size || 0), 0);
+    const pinned_content = (pinDetails || []).length;
 
     stats.set({ total_content, total_size, pinned_content, pinned_size });
     // --- End of Stat Calculation ---

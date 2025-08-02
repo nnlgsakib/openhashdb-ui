@@ -12,6 +12,7 @@
   let showFindModal = false;
   let foundContent: ContentInfo | null = null;
   let findErrorMessage = '';
+  let contentHasBeenLoaded = false;
   
   onMount(async () => {
     if ($isConnected) {
@@ -27,7 +28,8 @@
     isLoading.set(true);
     try {
       const content = await $api.listContent();
-      contentList.set(content);
+      contentList.set(content || []);
+      contentHasBeenLoaded = true;
     } catch (error) {
       console.error('Failed to load content:', error);
     } finally {
@@ -103,11 +105,8 @@
     });
   
   // Refresh content when connection status changes
-  $: if ($isConnected) {
-    // This check prevents re-loading when the component is mounted
-    if ($contentList.length === 0 && !$isLoading) {
-      loadContent();
-    }
+  $: if ($isConnected && !contentHasBeenLoaded && !$isLoading) {
+    loadContent();
   }
 </script>
 
