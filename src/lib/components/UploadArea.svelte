@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { getApi } from '../api';
-  import { addNotification } from '../stores';
+  import { api, addNotification } from '../stores';
   
   let isDragOver = false;
   let isUploading = false;
@@ -44,16 +43,14 @@
     uploadProgress = 0;
     
     try {
-      const api = getApi();
-      
       if (files.length === 1) {
         // Single file upload
         const file = files[0];
-        const response = await api.uploadFile(file);
+        const response = await $api.uploadFile(file);
         addNotification('success', `File uploaded: ${response.filename} (${response.hash.slice(0, 8)}...)`);
       } else {
         // Multiple files - upload as folder
-        const response = await api.uploadFolder(files);
+        const response = await $api.uploadFolder(files);
         addNotification('success', `Folder uploaded: ${response.filename} (${response.hash.slice(0, 8)}...)`);
       }
       

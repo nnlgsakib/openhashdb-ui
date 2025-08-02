@@ -1,6 +1,73 @@
-<script>
+<script lang="ts">
   import '../app.css';
+  import { onMount } from 'svelte';
+  import Layout from '$lib/components/Layout.svelte';
+  import ConnectionModal from '$lib/components/ConnectionModal.svelte';
+  import Notifications from '$lib/components/Notifications.svelte';
+  import { isConnected, apiBaseUrl, api, connectionError, pinnedList } from '$lib/stores';
+
+  onMount(() => {
+    // Activate the persistent stores
+    apiBaseUrl.useLocalStorage();
+    pinnedList.useLocalStorage();
+
+    let healthCheckInterval: NodeJS.Timeout;
+    let pinsCheckInterval: NodeJS.Timeout;
+
+    async function checkConnection() {
+      try {
+        const connected = await $api.testConnection();
+        isConnected.set(connected);
+        if (connected) {
+          connectionError.set(null);
+        }
+      } catch (e) {
+        isConnected.set(false);
+      }
+    }
+
+    async function checkPins() {
+      if (!$isConnected) return;
+      try {
+        const pinHashes = await $api.listPins();
+        const pinDetails = await Promise.all(
+          (pinHashes as unknown as string[]).map(hash => $api.getContentInfo(hash))
+        );
+        pinnedList.set(pinDetails);
+      } catch (error) {
+        console.error('Failed to refresh pinned content in background:', error);
+      }
+    }
+
+    // Initial checks
+    setTimeout(() => {
+      checkConnection().then(() => {
+        // Only check pins after confirming connection
+        checkPins();
+      });
+    }, 100);
+
+    // Periodic checks
+    healthCheckInterval = setInterval(checkConnection, 15000); // every 15 seconds
+    pinsCheckInterval = setInterval(checkPins, 60000); // every 60 seconds
+
+    return () => {
+      clearInterval(healthCheckInterval);
+      clearInterval(pinsCheckInterval);
+    };
+  });
 </script>
 
-<slot />
+<div class="bg-gray-50 min-h-screen">
+  <Layout>
+    <slot />
+  </Layout>
+
+  {#if !$isConnected}
+    <ConnectionModal />
+  {/if}
+
+  <Notifications />
+</div>
+
 

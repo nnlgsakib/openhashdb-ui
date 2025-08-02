@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { contentList, isConnected, isLoading } from '../stores';
-  import { getApi } from '../api';
+  import { contentList, isConnected, isLoading, api } from '../stores';
   import ContentCard from '../components/ContentCard.svelte';
   
   let searchTerm = '';
@@ -21,8 +20,7 @@
   async function loadContent() {
     isLoading.set(true);
     try {
-      const api = getApi();
-      const content = await api.listContent();
+      const content = await $api.listContent();
       contentList.set(content);
     } catch (error) {
       console.error('Failed to load content:', error);
@@ -65,8 +63,11 @@
     });
   
   // Refresh content when connection status changes
-  $: if ($isConnected && !$isLoading) {
-    loadContent();
+  $: if ($isConnected) {
+    // This check prevents re-loading when the component is mounted
+    if ($contentList.length === 0 && !$isLoading) {
+      loadContent();
+    }
   }
 </script>
 

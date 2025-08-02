@@ -29,10 +29,14 @@ export interface ContentInfo {
 }
 
 export interface NetworkStats {
-  peers: number;
-  connections: number;
-  bandwidth_in: number;
-  bandwidth_out: number;
+  addresses: string[];
+  connected_peers: number;
+  dht: {
+    enabled: boolean;
+    peer_count: number;
+  };
+  peer_id: string;
+  peer_list: string[];
 }
 
 export interface Stats {
@@ -46,10 +50,6 @@ class ApiService {
   private config: ApiConfig;
 
   constructor(config: ApiConfig) {
-    this.config = config;
-  }
-
-  updateConfig(config: ApiConfig) {
     this.config = config;
   }
 
@@ -188,19 +188,8 @@ class ApiService {
   }
 }
 
-// Create a default instance
-let apiService: ApiService;
-
-export function initializeApi(baseUrl: string = 'http://localhost:8080') {
-  apiService = new ApiService({ baseUrl });
-  return apiService;
-}
-
-export function getApi(): ApiService {
-  if (!apiService) {
-    apiService = initializeApi();
-  }
-  return apiService;
+export function initializeApi(baseUrl: string = 'http://localhost:8080'): ApiService {
+  return new ApiService({ baseUrl });
 }
 
 export { ApiService };

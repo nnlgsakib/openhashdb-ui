@@ -1,7 +1,5 @@
 <script lang="ts">
-  import { apiBaseUrl, isConnected, connectionError } from '../stores';
-  import { initializeApi, getApi } from '../api';
-  import { addNotification } from '../stores';
+  import { apiBaseUrl, isConnected, connectionError, api, addNotification } from '../stores';
   
   let inputUrl = $apiBaseUrl;
   let isConnecting = false;
@@ -16,11 +14,14 @@
     connectionError.set(null);
     
     try {
-      const api = initializeApi(inputUrl.trim());
-      const connected = await api.testConnection();
+      // Temporarily update the base URL to test
+      apiBaseUrl.set(inputUrl.trim());
+      
+      // Get the latest api instance from the derived store
+      const currentApi = await new Promise(resolve => api.subscribe(resolve)());
+      const connected = await currentApi.testConnection();
       
       if (connected) {
-        apiBaseUrl.set(inputUrl.trim());
         isConnected.set(true);
         addNotification('success', 'Successfully connected to Open Hash DB');
       } else {
@@ -42,8 +43,7 @@
   
   async function checkHealth() {
     try {
-      const api = getApi();
-      const health = await api.healthCheck();
+      const health = await $api.healthCheck();
       addNotification('success', `Health check passed: ${health.status || 'OK'}`);
     } catch (error) {
       addNotification('error', `Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

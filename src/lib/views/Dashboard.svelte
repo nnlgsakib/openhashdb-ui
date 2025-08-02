@@ -1,39 +1,61 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { stats, networkStats, contentList, pinnedList, isConnected } from '../stores';
-  import { getApi } from '../api';
+  import { stats, networkStats, contentList, pinnedList, isConnected, api, isLoading } from '../stores';
   import { formatBytes } from '../utils';
-  
-  let isLoading = true;
-  
-  onMount(async () => {
-    if ($isConnected) {
-      await loadDashboardData();
-    }
-    isLoading = false;
-  });
-  
+
   async function loadDashboardData() {
-    try {
-      const api = getApi();
-      const [statsData, networkData, contentData, pinsData] = await Promise.all([
-        api.getStats(),
-        api.getNetworkStats(),
-        api.listContent(),
-        api.listPins()
-      ]);
-      
-      stats.set(statsData);
-      networkStats.set(networkData);
-      contentList.set(contentData);
-      pinnedList.set(pinsData);
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    }
+    if ($isLoading) return;
+    isLoading.set(true);
+
+    // Fetch stats and network in parallel
+    const statsPromise = $api.getStats().then(stats.set).catch(err => {
+        console.error('Failed to load stats:', err);
+        stats.set(null);
+    });
+
+    const networkPromise = $api.getNetworkStats().then(networkStats.set).catch(err => {
+        console.error('Failed to load network stats:', err);
+        networkStats.set(null);
+    });
+
+    // Fetch content list
+    const contentPromise = $api.listContent().then(contentList.set).catch(err => {
+        console.error('Failed to load content list:', err);
+        contentList.set([]);
+    });
+
+    // Fetch pinned list
+    const pinsPromise = $api.listPins().then(async (pinHashes) => {
+        try {
+            const pinDetails = await Promise.all(
+                (pinHashes as unknown as string[]).map(hash => $api.getContentInfo(hash))
+            );
+            pinnedList.set(pinDetails);
+        } catch (err) {
+            console.error('Failed to load pin details:', err);
+            pinnedList.set([]);
+        }
+    }).catch(err => {
+        console.error('Failed to load pin hashes:', err);
+        pinnedList.set([]);
+    });
+
+    // Wait for all to settle before clearing the loading state
+    await Promise.allSettled([statsPromise, networkPromise, contentPromise, pinsPromise]);
+    
+    isLoading.set(false);
   }
-  
-  // Refresh data when connection status changes
-  $: if ($isConnected && !isLoading) {
+
+  onMount(() => {
+    // Load data when component mounts if connected
+    if ($isConnected) {
+      loadDashboardData();
+    }
+  });
+
+  // This reactive statement will trigger when isConnected becomes true
+  // and the core dashboard data (stats) is missing.
+  $: if ($isConnected && $stats === null && !$isLoading) {
     loadDashboardData();
   }
 </script>
@@ -46,7 +68,7 @@
     <h3 class="text-lg font-medium text-gray-900 mb-2">Not Connected</h3>
     <p class="text-gray-600">Please connect to your Open Hash DB instance to view the dashboard.</p>
   </div>
-{:else if isLoading}
+{:else if $isLoading && $stats === null}
   <div class="text-center py-12">
     <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
     <p class="text-gray-600">Loading dashboard data...</p>
@@ -94,8 +116,8 @@
       <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Network Peers</p>
-            <p class="text-2xl font-bold text-gray-900">{$networkStats?.peers || 0}</p>
+            <p class="text-sm font-medium text-gray-600">Connected Peers</p>
+            <p class="text-2xl font-bold text-gray-900">{$networkStats?.connected_peers || 0}</p>
           </div>
           <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
             <span class="text-2xl">🌐</span>
@@ -107,19 +129,15 @@
     <!-- Network Status -->
     {#if $networkStats}
       <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Network Status</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Network Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="text-center">
-            <p class="text-sm text-gray-600">Connections</p>
-            <p class="text-xl font-bold text-gray-900">{$networkStats.connections}</p>
+            <p class="text-sm text-gray-600">DHT Enabled</p>
+            <p class="text-xl font-bold text-gray-900">{$networkStats.dht?.enabled ? 'Yes' : 'No'}</p>
           </div>
           <div class="text-center">
-            <p class="text-sm text-gray-600">Bandwidth In</p>
-            <p class="text-xl font-bold text-green-600">{formatBytes($networkStats.bandwidth_in)}/s</p>
-          </div>
-          <div class="text-center">
-            <p class="text-sm text-gray-600">Bandwidth Out</p>
-            <p class="text-xl font-bold text-blue-600">{formatBytes($networkStats.bandwidth_out)}/s</p>
+            <p class="text-sm text-gray-600">DHT Peers</p>
+            <p class="text-xl font-bold text-gray-900">{$networkStats.dht?.peer_count || 0}</p>
           </div>
         </div>
       </div>
@@ -140,7 +158,7 @@
                     <p class="text-sm text-gray-500">{formatBytes(content.size)}</p>
                   </div>
                 </div>
-                <span class="text-xs text-gray-400">{content.hash.slice(0, 8)}...</span>
+                <span class="text-xs text-gray-400">{content.hash ? `${content.hash.slice(0, 8)}...` : 'N/A'}</span>
               </div>
             {/each}
           </div>
@@ -162,7 +180,7 @@
                     <p class="text-sm text-gray-500">{formatBytes(content.size)}</p>
                   </div>
                 </div>
-                <span class="text-xs text-gray-400">{content.hash.slice(0, 8)}...</span>
+                <span class="text-xs text-gray-400">{content.hash ? `${content.hash.slice(0, 8)}...` : 'N/A'}</span>
               </div>
             {/each}
           </div>

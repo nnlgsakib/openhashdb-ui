@@ -1,57 +1,61 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { pinnedList, isConnected, isLoading } from '../stores';
-  import { getApi } from '../api';
+  import { pinnedList, isConnected, isLoading, api } from '../stores';
   import ContentCard from '../components/ContentCard.svelte';
   
   let searchTerm = '';
   let sortBy = 'created_at';
   let sortOrder = 'desc';
   
-  onMount(async () => {
-    if ($isConnected) {
-      await loadPins();
-    }
-    
-    // Listen for refresh events
+  onMount(() => {
+    // Listen for global refresh events, e.g., after an unpin action
     window.addEventListener('refresh-content', loadPins);
     return () => window.removeEventListener('refresh-content', loadPins);
   });
   
+  // This function is now primarily for manual refresh via the button
   async function loadPins() {
+    if ($isLoading) return;
     isLoading.set(true);
     try {
-      const api = getApi();
-      const pins = await api.listPins();
-      pinnedList.set(pins);
+      const pinHashes = await $api.listPins();
+      const pinDetails = await Promise.all(
+        (pinHashes as unknown as string[]).map(hash => $api.getContentInfo(hash))
+      );
+      pinnedList.set(pinDetails);
     } catch (error) {
       console.error('Failed to load pins:', error);
+      pinnedList.set([]);
     } finally {
       isLoading.set(false);
     }
   }
   
-  $: filteredPins = $pinnedList
-    .filter(content => 
-      content.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      content.hash.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      content.mime_type.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+  $: filteredPins = ($pinnedList || [])
+    .filter(content => {
+      if (!content) return false;
+      const term = searchTerm.toLowerCase();
+      return (
+        (content.filename && content.filename.toLowerCase().includes(term)) ||
+        (content.hash && content.hash.toLowerCase().includes(term)) ||
+        (content.mime_type && content.mime_type.toLowerCase().includes(term))
+      );
+    })
     .sort((a, b) => {
       let aVal, bVal;
       
       switch (sortBy) {
         case 'filename':
-          aVal = a.filename.toLowerCase();
-          bVal = b.filename.toLowerCase();
+          aVal = a.filename?.toLowerCase() || '';
+          bVal = b.filename?.toLowerCase() || '';
           break;
         case 'size':
-          aVal = a.size;
-          bVal = b.size;
+          aVal = a.size || 0;
+          bVal = b.size || 0;
           break;
         case 'created_at':
-          aVal = new Date(a.created_at).getTime();
-          bVal = new Date(b.created_at).getTime();
+          aVal = new Date(a.created_at || 0).getTime();
+          bVal = new Date(b.created_at || 0).getTime();
           break;
         default:
           return 0;
@@ -63,11 +67,6 @@
         return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
       }
     });
-  
-  // Refresh pins when connection status changes
-  $: if ($isConnected && !$isLoading) {
-    loadPins();
-  }
 </script>
 
 {#if !$isConnected}

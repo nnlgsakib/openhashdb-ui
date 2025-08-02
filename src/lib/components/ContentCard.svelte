@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { ContentInfo } from '../api';
   import { formatBytes, formatDate, truncateHash, copyToClipboard, getMimeTypeIcon } from '../utils';
-  import { addNotification } from '../stores';
-  import { getApi } from '../api';
+  import { addNotification, api } from '../stores';
   
   export let content: ContentInfo;
   export let showPinActions = true;
@@ -12,8 +11,7 @@
   async function handlePin() {
     isLoading = true;
     try {
-      const api = getApi();
-      await api.pinContent(content.hash);
+      await $api.pinContent(content.hash);
       addNotification('success', `Content pinned: ${content.filename}`);
       // Dispatch event to refresh lists
       window.dispatchEvent(new CustomEvent('refresh-content'));
@@ -27,8 +25,7 @@
   async function handleUnpin() {
     isLoading = true;
     try {
-      const api = getApi();
-      await api.unpinContent(content.hash);
+      await $api.unpinContent(content.hash);
       addNotification('success', `Content unpinned: ${content.filename}`);
       // Dispatch event to refresh lists
       window.dispatchEvent(new CustomEvent('refresh-content'));
@@ -49,14 +46,12 @@
   }
   
   function handleDownload() {
-    const api = getApi();
-    const url = api.getDownloadUrl(content.hash);
+    const url = $api.getDownloadUrl(content.hash);
     window.open(url, '_blank');
   }
   
   function handleView() {
-    const api = getApi();
-    const url = api.getViewUrl(content.hash);
+    const url = $api.getViewUrl(content.hash);
     window.open(url, '_blank');
   }
 </script>
