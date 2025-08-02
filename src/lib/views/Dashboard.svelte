@@ -1,48 +1,53 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import { stats, networkStats, contentList, pinnedList, isConnected, api, isLoading } from '../stores';
   import { formatBytes } from '../utils';
 
   async function loadDashboardData() {
-    if ($isLoading) return;
+    if (get(isLoading)) return;
     isLoading.set(true);
 
-    // Fetch stats and network in parallel
-    const statsPromise = $api.getStats().then(stats.set).catch(err => {
-        console.error('Failed to load stats:', err);
-        stats.set(null);
-    });
-
+    // Fetch network stats
     const networkPromise = $api.getNetworkStats().then(networkStats.set).catch(err => {
         console.error('Failed to load network stats:', err);
         networkStats.set(null);
     });
 
-    // Fetch content list
-    const contentPromise = $api.listContent().then(contentList.set).catch(err => {
+    // Fetch content and pins in parallel
+    const contentPromise = $api.listContent().catch(err => {
         console.error('Failed to load content list:', err);
-        contentList.set([]);
+        return []; // Return empty array on failure
     });
 
-    // Fetch pinned list
-    const pinsPromise = $api.listPins().then(async (pinHashes) => {
-        try {
-            const pinDetails = await Promise.all(
-                (pinHashes as unknown as string[]).map(hash => $api.getContentInfo(hash))
-            );
-            pinnedList.set(pinDetails);
-        } catch (err) {
+    const pinsPromise = $api.listPins()
+        .then(pinHashes => Promise.all((pinHashes as unknown as string[]).map(hash => $api.getContentInfo(hash))))
+        .catch(err => {
             console.error('Failed to load pin details:', err);
-            pinnedList.set([]);
-        }
-    }).catch(err => {
-        console.error('Failed to load pin hashes:', err);
-        pinnedList.set([]);
-    });
+            return []; // Return empty array on failure
+        });
 
-    // Wait for all to settle before clearing the loading state
-    await Promise.allSettled([statsPromise, networkPromise, contentPromise, pinsPromise]);
+    // Wait for both content and pins to be fetched
+    const [contentData, pinDetails] = await Promise.all([contentPromise, pinsPromise]);
     
+    contentList.set(contentData);
+    pinnedList.set(pinDetails);
+
+    // --- Calculate Combined Stats ---
+    const allContent = new Map();
+    contentData.forEach(item => allContent.set(item.hash, item));
+    pinDetails.forEach(item => allContent.set(item.hash, item));
+
+    const uniqueContent = Array.from(allContent.values());
+    
+    const total_size = uniqueContent.reduce((acc, item) => acc + item.size, 0);
+    const total_content = uniqueContent.length;
+    const pinned_size = pinDetails.reduce((acc, item) => acc + item.size, 0);
+    const pinned_content = pinDetails.length;
+
+    stats.set({ total_content, total_size, pinned_content, pinned_size });
+    // --- End of Stat Calculation ---
+
     isLoading.set(false);
   }
 
@@ -76,7 +81,7 @@
 {:else}
   <div class="space-y-6">
     <!-- Stats Overview -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
@@ -85,18 +90,6 @@
           </div>
           <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
             <span class="text-2xl">📁</span>
-          </div>
-        </div>
-      </div>
-      
-      <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Total Size</p>
-            <p class="text-2xl font-bold text-gray-900">{formatBytes($stats?.total_size || 0)}</p>
-          </div>
-          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-            <span class="text-2xl">💾</span>
           </div>
         </div>
       </div>
@@ -191,4 +184,5 @@
     </div>
   </div>
 {/if}
+
 
