@@ -2,10 +2,16 @@
   import { onMount } from 'svelte';
   import { contentList, isConnected, isLoading, api } from '../stores';
   import ContentCard from '../components/ContentCard.svelte';
+  import type { ContentInfo } from '../api';
   
   let searchTerm = '';
   let sortBy = 'created_at';
   let sortOrder = 'desc';
+
+  let findHashInput = '';
+  let showFindModal = false;
+  let foundContent: ContentInfo | null = null;
+  let findErrorMessage = '';
   
   onMount(async () => {
     if ($isConnected) {
@@ -27,6 +33,40 @@
     } finally {
       isLoading.set(false);
     }
+  }
+
+  async function handleFindHash() {
+    findErrorMessage = '';
+    foundContent = null;
+    showFindModal = true; // Always show modal, either with data or error
+
+    if (!findHashInput) {
+      findErrorMessage = 'Please enter a hash to search.';
+      return;
+    }
+
+    // 1. Check existing list
+    const localContent = $contentList.find(c => c.hash.toLowerCase() === findHashInput.toLowerCase());
+    if (localContent) {
+      foundContent = localContent;
+      return;
+    }
+
+    // 2. If not found locally, request from API
+    try {
+      const networkContent = await $api.getContentInfo(findHashInput);
+      foundContent = networkContent;
+    } catch (error) {
+      console.error('Failed to find content from network:', error);
+      findErrorMessage = 'Unable to find data from network.';
+    }
+  }
+
+  function closeFindModal() {
+    showFindModal = false;
+    foundContent = null;
+    findErrorMessage = '';
+    findHashInput = '';
   }
   
   $: filteredContent = $contentList
@@ -88,13 +128,22 @@
         <p class="text-gray-600">Browse and manage all content in the database</p>
       </div>
       
-      <button
-        on:click={loadContent}
-        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-      >
-        <span>🔄</span>
-        <span>Refresh</span>
-      </button>
+      <div class="flex gap-2">
+        <button
+          on:click={loadContent}
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
+          <span>🔄</span>
+          <span>Refresh</span>
+        </button>
+        <button
+          on:click={() => showFindModal = true}
+          class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+        >
+          <span>🔍</span>
+          <span>Find</span>
+        </button>
+      </div>
     </div>
     
     <!-- Search and Filter Controls -->
@@ -129,7 +178,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Content Grid -->
     {#if $isLoading}
       <div class="text-center py-12">
@@ -158,6 +207,48 @@
       <!-- Results summary -->
       <div class="text-center text-gray-600">
         <p>Showing {filteredContent.length} of {$contentList.length} items</p>
+      </div>
+    {/if}
+
+    {#if showFindModal}
+      <div class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+          <h3 class="text-xl font-bold mb-4">
+            {#if foundContent}
+              Content Found
+            {:else}
+              Search Result
+            {/if}
+          </h3>
+          <div class="flex flex-col sm:flex-row gap-4 items-center mb-4">
+            <input
+              type="text"
+              placeholder="Enter hash to find..."
+              bind:value={findHashInput}
+              on:keydown={(e) => { if (e.key === 'Enter') handleFindHash(); }}
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+            />
+            <button
+              on:click={handleFindHash}
+              class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Search Hash
+            </button>
+          </div>
+          {#if foundContent}
+            <ContentCard content={foundContent} showPinActions={true} />
+          {:else if findErrorMessage}
+            <p class="text-red-600 mb-4">{findErrorMessage}</p>
+          {/if}
+          <div class="mt-4 flex justify-end">
+            <button
+              on:click={closeFindModal}
+              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       </div>
     {/if}
   </div>
