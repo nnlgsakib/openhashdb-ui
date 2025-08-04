@@ -54,13 +54,32 @@ export function copyToClipboard(text: string): Promise<void> {
 }
 
 export function getMimeTypeIcon(mimeType: string): string {
-  if (mimeType.startsWith('image/')) return '🖼️';
-  if (mimeType.startsWith('video/')) return '🎥';
-  if (mimeType.startsWith('audio/')) return '🎵';
-  if (mimeType.startsWith('text/')) return '📄';
-  if (mimeType === 'application/pdf') return '📕';
-  if (mimeType.includes('zip') || mimeType.includes('archive')) return '📦';
-  if (mimeType.includes('json')) return '📋';
+  // Browser-renderable MIME types
+  if (mimeType.startsWith('image/')) return '🖼️'; // Images: png, jpg, jpeg, gif, svg, webp, ico, bmp, avif, heif, tiff
+  if (mimeType.startsWith('video/')) return '🎥'; // Videos: mp4, webm, mpeg, ogv, avi, mov, ts
+  if (mimeType.startsWith('audio/')) return '🎵'; // Audio: mp3, wav, ogg, flac, aac
+  if (mimeType.startsWith('text/')) return '📄'; // Text: plain, html, css, csv, vtt, markdown, vcard, calendar
+  if (mimeType.startsWith('font/') || mimeType === 'application/vnd.ms-fontobject') return '🖌️'; // Fonts: woff, woff2, ttf, otf, eot
+  if (mimeType === 'application/javascript' || mimeType === 'application/wasm') return '💻'; // Scripts: js, mjs, wasm
+  if (mimeType.includes('json') || mimeType === 'application/ld+json') return '📋'; // JSON: json, jsonld
+  if (mimeType === 'application/xml' || mimeType === 'application/xhtml+xml') return '📄'; // XML-based: xml, xhtml
+  if (mimeType === 'application/vnd.apple.mpegurl') return '📺'; // Streaming: m3u8
+
+  // Browser-unrenderable MIME types
+  if (mimeType === 'application/pdf') return '📕'; // PDF
+  if (mimeType.includes('zip') || mimeType.includes('archive') || mimeType.includes('compressed') || mimeType.includes('tar') || mimeType.includes('bzip2') || mimeType.includes('xz') || mimeType.includes('zstd')) return '📦'; // Archives: zip, rar, 7z, tar, gz, bz2, xz, zst, epub, jar, war
+  if (mimeType.startsWith('application/vnd.ms-') || mimeType.includes('openxmlformats') || mimeType.includes('oasis.opendocument')) return '📑'; // Documents: doc, docx, xls, xlsx, ppt, pptx, odt, ods, odp, odg
+  if (mimeType === 'application/rtf') return '📝'; // RTF
+  if (mimeType === 'application/x-msdownload' || mimeType === 'application/vnd.android.package-archive' || mimeType === 'application/vnd.debian.binary-package' || mimeType === 'application/x-rpm') return '💾'; // Executables/Packages: exe, apk, deb, rpm
+  if (mimeType === 'application/x-shockwave-flash') return '🎬'; // Flash: swf
+  if (mimeType === 'video/x-matroska' || mimeType === 'video/x-flv') return '🎞️'; // Videos (unrenderable): mkv, flv
+  if (mimeType === 'image/vnd.adobe.photoshop' || mimeType === 'application/postscript' || mimeType === 'image/vnd.dwg') return '🎨'; // Design files: psd, ai, eps, dwg
+  if (mimeType.includes('google-earth') || mimeType === 'application/gpx+xml') return '🌍'; // Geospatial: kml, kmz, gpx
+  if (mimeType === 'application/x-bittorrent') return '🌐'; // Torrent
+  if (mimeType === 'application/sql' || mimeType === 'application/x-sqlite3') return '🗄️'; // Databases: sql, db, sqlite
+  if (mimeType === 'application/x-iso9660-image' || mimeType === 'application/x-apple-diskimage') return '💿'; // Disk images: iso, dmg
+
+  // Fallback for unknown or generic binary
   return '📄';
 }
 
