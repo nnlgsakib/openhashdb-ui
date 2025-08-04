@@ -56,8 +56,12 @@
 
     // 2. If not found locally, request from API
     try {
-      const networkContent = await $api.getContentInfo(findHashInput);
-      foundContent = networkContent;
+      const response = await $api.findContent(findHashInput);
+      if ('message' in response) {
+        findErrorMessage = response.message;
+      } else {
+        foundContent = response;
+      }
     } catch (error) {
       console.error('Failed to find content from network:', error);
       findErrorMessage = 'Unable to find data from network.';

@@ -129,9 +129,11 @@ class ApiService {
   }
 
   // Content operations
-  async getContentInfo(hash: string): Promise<ContentInfo> {
-    return this.request<ContentInfo>(`/info/${hash}`);
+  async findContent(hash: string): Promise<ContentInfo | { message: string }> {
+    return this.request<ContentInfo | { message: string }>(`/info/${hash}`);
   }
+
+  
 
   async listContent(): Promise<ContentInfo[]> {
     return this.request<ContentInfo[]>('/list');
