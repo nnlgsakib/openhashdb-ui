@@ -139,8 +139,8 @@ class ApiService {
     return this.request<ContentInfo[]>('/list');
   }
 
-  async listPins(): Promise<ContentInfo[]> {
-    return this.request<ContentInfo[]>('/pins');
+  async listPins(): Promise<string[]> {
+    return this.request<string[]>('/pins');
   }
 
   // Pin operations

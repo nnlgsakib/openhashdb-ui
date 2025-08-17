@@ -19,9 +19,14 @@
     isLoading.set(true);
     try {
       const pinHashes = await $api.listPins();
-      const pinDetails = await Promise.all(
-        (pinHashes as unknown as string[]).map(hash => $api.getContentInfo(hash))
+      const pinInfoResults = await Promise.all(
+        pinHashes.map(hash => $api.findContent(hash))
       );
+      
+      const pinDetails = pinInfoResults.filter(
+        (info): info is ContentInfo => info && 'hash' in info
+      );
+      
       pinnedList.set(pinDetails);
     } catch (error) {
       console.error('Failed to load pins:', error);
