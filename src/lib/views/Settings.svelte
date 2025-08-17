@@ -37,8 +37,12 @@
     }
   }
   
-  function resetToDefault() {
-    inputUrl = 'http://localhost:8080';
+    function resetToDefault() {
+    if (typeof window !== 'undefined') {
+      inputUrl = window.location.origin;
+    } else {
+      inputUrl = 'http://localhost:8080';
+    }
   }
   
   async function checkHealth() {
@@ -71,7 +75,7 @@
             id="api-url"
             type="url"
             bind:value={inputUrl}
-            placeholder="http://localhost:8080"
+            placeholder="e.g. http://localhost:8080"
             class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
             disabled={isConnecting}
           />

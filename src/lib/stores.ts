@@ -25,8 +25,15 @@ function createPersistentStore<T>(key: string, startValue: T) {
   };
 }
 
+function getInitialApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:8080';
+}
+
 // API configuration store
-export const apiBaseUrl = createPersistentStore<string>('apiBaseUrl', 'http://localhost:8080');
+export const apiBaseUrl = createPersistentStore<string>('apiBaseUrl', getInitialApiBaseUrl());
 export const isConnected = writable<boolean>(false);
 export const connectionError = writable<string | null>(null);
 
