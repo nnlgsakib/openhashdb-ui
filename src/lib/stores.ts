@@ -51,8 +51,16 @@ export const networkStats = writable<NetworkStats | null>(null);
 
 // UI state stores
 export const isLoading = writable<boolean>(false);
-export const currentView = writable<'dashboard' | 'upload' | 'content' | 'pins' | 'settings'>('dashboard');
+export const currentView = writable<'dashboard' | 'upload' | 'content' | 'pins' | 'settings' | 'explore' | 'peers'>('dashboard');
 export const notifications = writable<Array<{ id: string; type: 'success' | 'error' | 'info'; message: string }>>([]);
+
+// Theme and layout
+export const theme = createPersistentStore<'light' | 'dark'>('theme', 'light');
+export const sidebarCollapsed = createPersistentStore<boolean>('sidebarCollapsed', false);
+export const commandPaletteOpen = writable<boolean>(false);
+export const quickAddOpen = writable<boolean>(false);
+export const filesViewMode = createPersistentStore<'grid' | 'table'>('filesViewMode', 'grid');
+export const exploreHash = writable<string>('');
 
 // Derived stores
 export const totalContent = derived(contentList, ($contentList) => $contentList.length);
@@ -75,3 +83,19 @@ export function removeNotification(id: string) {
   notifications.update(n => n.filter(notification => notification.id !== id));
 }
 
+// Command helpers
+export function openCommandPalette() {
+  commandPaletteOpen.set(true);
+}
+
+export function closeCommandPalette() {
+  commandPaletteOpen.set(false);
+}
+
+export function openQuickAdd() {
+  quickAddOpen.set(true);
+}
+
+export function closeQuickAdd() {
+  quickAddOpen.set(false);
+}

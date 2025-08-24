@@ -77,7 +77,7 @@
 <div class="space-y-6">
   <!-- Drag and Drop Area -->
   <div
-    class="border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 {isDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'} {isUploading ? 'pointer-events-none opacity-50' : ''}"
+    class="rounded-xl p-8 text-center transition-all duration-200 card border-2 border-dashed {isDragOver ? 'border-brand-500 bg-brand-50 dark:bg-white/10' : 'border-gray-200 dark:border-white/10 hover:border-zinc-300 dark:hover:border-white/20'} {isUploading ? 'pointer-events-none opacity-50' : ''}"
     on:dragover={handleDragOver}
     on:dragleave={handleDragLeave}
     on:drop={handleDrop}
@@ -86,22 +86,22 @@
   >
     {#if isUploading}
       <div class="space-y-4">
-        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="text-lg font-medium text-gray-700">Uploading...</p>
+        <div class="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="text-lg font-medium text-zinc-700 dark:text-zinc-200">Uploading...</p>
         {#if uploadProgress > 0}
-          <div class="w-full bg-gray-200 rounded-full h-2">
-            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: {uploadProgress}%"></div>
+          <div class="w-full bg-zinc-200 dark:bg-white/10 rounded-full h-2">
+            <div class="bg-brand-600 h-2 rounded-full transition-all duration-300" style="width: {uploadProgress}%"></div>
           </div>
         {/if}
       </div>
     {:else}
       <div class="space-y-4">
-        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+        <div class="w-16 h-16 bg-zinc-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto">
           <span class="text-3xl">📤</span>
         </div>
         <div>
-          <p class="text-lg font-medium text-gray-700">Drop files here to upload</p>
-          <p class="text-gray-500">or click the buttons below to select files</p>
+          <p class="text-lg font-medium text-zinc-700 dark:text-zinc-200">Drop files here to upload</p>
+          <p class="text-zinc-500 dark:text-zinc-400">or click the buttons below to select files</p>
         </div>
       </div>
     {/if}
@@ -110,18 +110,12 @@
   <!-- Upload Buttons -->
   {#if !isUploading}
     <div class="flex space-x-4 justify-center">
-      <button
-        on:click={triggerFileSelect}
-        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
-      >
+      <button on:click={triggerFileSelect} class="btn-primary px-6 py-3">
         <span>📄</span>
         <span>Select Files</span>
       </button>
       
-      <button
-        on:click={triggerFolderSelect}
-        class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2"
-      >
+      <button on:click={triggerFolderSelect} class="btn bg-green-600 hover:bg-green-700 text-white px-6 py-3">
         <span>📁</span>
         <span>Select Folder</span>
       </button>
@@ -147,9 +141,9 @@
   />
   
   <!-- Upload Tips -->
-  <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-    <h4 class="font-medium text-blue-900 mb-2">💡 Upload Tips</h4>
-    <ul class="text-sm text-blue-800 space-y-1">
+  <div class="bg-blue-50 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-900 rounded-lg p-4">
+    <h4 class="font-medium text-blue-900 dark:text-blue-200 mb-2">💡 Upload Tips</h4>
+    <ul class="text-sm text-blue-800 dark:text-blue-300/80 space-y-1">
       <li>• Single files will be uploaded individually</li>
       <li>• Multiple files will be zipped and uploaded as a folder</li>
       <li>• Large files are automatically chunked for efficient storage</li>

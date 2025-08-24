@@ -53,9 +53,11 @@ class ApiService {
     this.config = config;
   }
 
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async request<T>(endpoint: string, options: RequestInit = {}, timeoutMs = 15000): Promise<T> {
     const url = `${this.config.baseUrl}${endpoint}`;
-    
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
       const response = await fetch(url, {
         ...options,
@@ -63,6 +65,7 @@ class ApiService {
           'Content-Type': 'application/json',
           ...options.headers,
         },
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -76,10 +79,16 @@ class ApiService {
 
       return await response.json();
     } catch (error) {
+      if ((error as any)?.name === 'AbortError') {
+        throw new Error('Request timed out');
+      }
       if (error instanceof Error) {
         throw error;
       }
       throw new Error('Unknown error occurred');
+    }
+    finally {
+      clearTimeout(id);
     }
   }
 
@@ -143,6 +152,12 @@ class ApiService {
     return this.request<string[]>('/pins');
   }
 
+  // Convenience wrappers (IPFS-like)
+  async listPeers(): Promise<string[]> {
+    const ns = await this.getNetworkStats();
+    return ns.peer_list || [];
+  }
+
   // Pin operations
   async pinContent(hash: string): Promise<{ message: string }> {
     return this.request<{ message: string }>(`/pin/${hash}`, {
@@ -163,6 +178,11 @@ class ApiService {
 
   async getNetworkStats(): Promise<NetworkStats> {
     return this.request<NetworkStats>('/network');
+  }
+
+  // Raw content info (alias to findContent for now)
+  async getDagNode(hash: string): Promise<ContentInfo | { message: string }> {
+    return this.findContent(hash);
   }
 
   // Health check
@@ -195,4 +215,3 @@ export function initializeApi(baseUrl: string = 'http://localhost:8080'): ApiSer
 }
 
 export { ApiService };
-

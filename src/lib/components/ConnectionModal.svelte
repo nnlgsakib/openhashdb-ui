@@ -44,14 +44,14 @@
   }
 </script>
 
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+<div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+  <div class="card shadow-xl p-6 w-full max-w-md mx-4">
     <div class="text-center mb-6">
-      <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <div class="w-16 h-16 bg-brand-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
         <span class="text-2xl">🔗</span>
       </div>
-      <h2 class="text-xl font-bold text-gray-900">Connect to Open Hash DB</h2>
-      <p class="text-gray-600 mt-2">Enter the API base URL to connect to your Open Hash DB instance</p>
+      <h2 class="text-xl font-bold text-zinc-900 dark:text-zinc-100">Connect to Open Hash DB</h2>
+      <p class="text-zinc-600 dark:text-zinc-400 mt-2">Enter the API base URL to connect to your Open Hash DB instance</p>
     </div>
     
     <div class="space-y-4">
@@ -65,16 +65,16 @@
           bind:value={inputUrl}
           on:keydown={handleKeydown}
           placeholder="e.g. http://localhost:8080"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+          class="input"
           disabled={isConnecting}
         />
       </div>
       
       {#if $connectionError}
-        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+        <div class="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg p-3">
           <div class="flex items-center space-x-2">
             <span class="text-red-500">❌</span>
-            <p class="text-sm text-red-700">{$connectionError}</p>
+            <p class="text-sm text-red-700 dark:text-red-300">{$connectionError}</p>
           </div>
         </div>
       {/if}
@@ -82,7 +82,7 @@
       <button
         on:click={testConnection}
         disabled={isConnecting || !inputUrl.trim()}
-        class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+        class="w-full btn-primary disabled:bg-zinc-300 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
       >
         {#if isConnecting}
           <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -94,10 +94,9 @@
     </div>
     
     <div class="mt-6 text-center">
-      <p class="text-xs text-gray-500">
+      <p class="text-xs text-zinc-500 dark:text-zinc-400">
         Make sure your Open Hash DB server is running and accessible
       </p>
     </div>
   </div>
 </div>
-

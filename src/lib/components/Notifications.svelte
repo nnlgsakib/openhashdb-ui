@@ -24,7 +24,7 @@
 <div class="fixed top-4 right-4 z-50 space-y-2">
   {#each $notifications as notification (notification.id)}
     <div
-      class="max-w-sm p-4 rounded-lg border shadow-lg {getNotificationClasses(notification.type)}"
+      class="max-w-sm p-4 rounded-lg border shadow-lg {getNotificationClasses(notification.type)} dark:shadow-black/10"
       transition:fly={{ x: 300, duration: 300 }}
     >
       <div class="flex items-start space-x-3">

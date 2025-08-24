@@ -8,7 +8,7 @@
   export let title = 'Open Hash DB';
 </script>
 
-<div class="min-h-screen bg-gray-50 flex">
+<div class="min-h-screen flex bg-gradient-to-br from-brand-50 via-white to-brand-100 dark:from-black dark:via-[rgb(10,10,12)] dark:to-[rgb(10,10,12)]">
   <!-- Sidebar -->
   <Sidebar />
   

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { contentList, isConnected, isLoading, api } from '../stores';
+  import { contentList, isConnected, isLoading, api, filesViewMode } from '../stores';
+  import { formatBytes, formatDate, truncateHash } from '../utils';
   import ContentCard from '../components/ContentCard.svelte';
   import type { ContentInfo } from '../api';
   
@@ -114,35 +115,29 @@
   }
 </script>
 
-{#if !$isConnected}
+  {#if !$isConnected}
   <div class="text-center py-12">
-    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+    <div class="w-16 h-16 bg-zinc-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
       <span class="text-3xl">🔌</span>
     </div>
-    <h3 class="text-lg font-medium text-gray-900 mb-2">Not Connected</h3>
-    <p class="text-gray-600">Please connect to your Open Hash DB instance to view content.</p>
+    <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">Not Connected</h3>
+    <p class="text-zinc-600 dark:text-zinc-400">Please connect to your Open Hash DB instance to view content.</p>
   </div>
 {:else}
   <div class="space-y-6">
     <!-- Header with search and controls -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h2 class="text-2xl font-bold text-gray-900">All Content</h2>
-        <p class="text-gray-600">Browse and manage all content in the database</p>
+        <h2 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Files</h2>
+        <p class="text-zinc-600 dark:text-zinc-400">Browse and manage your files</p>
       </div>
       
       <div class="flex gap-2">
-        <button
-          on:click={loadContent}
-          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
+        <button on:click={loadContent} class="btn-primary">
           <span>🔄</span>
           <span>Refresh</span>
         </button>
-        <button
-          on:click={() => showFindModal = true}
-          class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-        >
+        <button on:click={() => showFindModal = true} class="btn-secondary">
           <span>🔍</span>
           <span>Find</span>
         </button>
@@ -150,21 +145,29 @@
     </div>
     
     <!-- Search and Filter Controls -->
-    <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+    <div class="card p-4">
       <div class="flex flex-col sm:flex-row gap-4">
         <div class="flex-1">
           <input
             type="text"
             placeholder="Search by filename, hash, or type..."
             bind:value={searchTerm}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            class="input"
           />
         </div>
         
-        <div class="flex gap-2">
+        <div class="flex gap-2 items-center">
+          <div class="hidden sm:flex items-center rounded-lg border border-zinc-300 dark:border-white/10 overflow-hidden">
+            <button class={"px-3 py-2 text-sm " + ($filesViewMode === 'grid' ? 'bg-brand-600 text-white' : 'text-zinc-700 dark:text-zinc-300')} on:click={() => filesViewMode.set('grid')}>
+              Grid
+            </button>
+            <button class={"px-3 py-2 text-sm " + ($filesViewMode === 'table' ? 'bg-brand-600 text-white' : 'text-zinc-700 dark:text-zinc-300')} on:click={() => filesViewMode.set('table')}>
+              Table
+            </button>
+          </div>
           <select
             bind:value={sortBy}
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            class="input w-auto"
           >
             <option value="created_at">Created Date</option>
             <option value="filename">Filename</option>
@@ -173,7 +176,7 @@
           
           <select
             bind:value={sortOrder}
-            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            class="input w-auto"
           >
             <option value="desc">Descending</option>
             <option value="asc">Ascending</option>
@@ -185,38 +188,78 @@
     <!-- Content Grid -->
     {#if $isLoading}
       <div class="text-center py-12">
-        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p class="text-gray-600">Loading content...</p>
+        <div class="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p class="text-zinc-600 dark:text-zinc-400">Loading content...</p>
       </div>
     {:else if filteredContent.length === 0}
       <div class="text-center py-12">
-        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div class="w-16 h-16 bg-zinc-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <span class="text-3xl">📁</span>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">
+        <h3 class="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">
           {searchTerm ? 'No matching content found' : 'No content available'}
         </h3>
-        <p class="text-gray-600">
+        <p class="text-zinc-600 dark:text-zinc-400">
           {searchTerm ? 'Try adjusting your search terms' : 'Upload some files to get started'}
         </p>
       </div>
     {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {#each filteredContent as content (content.hash)}
-          <ContentCard {content} showPinActions={true} />
-        {/each}
-      </div>
+      {#if $filesViewMode === 'grid'}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {#each filteredContent as content (content.hash)}
+            <ContentCard {content} showPinActions={true} />
+          {/each}
+        </div>
+      {:else}
+        <div class="card overflow-x-auto">
+          <table class="min-w-full divide-y divide-zinc-200 dark:divide-white/10 text-sm">
+            <thead class="bg-zinc-50 dark:bg-white/5">
+              <tr>
+                <th class="px-4 py-2 text-left font-medium text-zinc-700 dark:text-zinc-300">Name</th>
+                <th class="px-4 py-2 text-left font-medium text-zinc-700 dark:text-zinc-300">Type</th>
+                <th class="px-4 py-2 text-right font-medium text-zinc-700 dark:text-zinc-300">Size</th>
+                <th class="px-4 py-2 text-left font-medium text-zinc-700 dark:text-zinc-300">Created</th>
+                <th class="px-4 py-2 text-right font-medium text-zinc-700 dark:text-zinc-300">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200 dark:divide-white/10">
+              {#each filteredContent as content (content.hash)}
+                <tr>
+                  <td class="px-4 py-2">
+                    <div class="flex items-center gap-3">
+                      <span>{content.is_directory ? '📁' : '📄'}</span>
+                      <div>
+                        <div class="font-medium text-zinc-900 dark:text-zinc-100">{content.filename}</div>
+                        <div class="text-xs text-zinc-500">{truncateHash(content.hash)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-4 py-2 text-zinc-600 dark:text-zinc-400">{content.mime_type}</td>
+                  <td class="px-4 py-2 text-right">{formatBytes(content.size)}</td>
+                  <td class="px-4 py-2">{formatDate(content.created_at)}</td>
+                  <td class="px-4 py-2 text-right">
+                    <div class="inline-flex gap-2">
+                      <button class="btn-ghost" on:click={() => window.open($api.getViewUrl(content.hash), '_blank')}>View</button>
+                      <button class="btn-ghost" on:click={() => window.open($api.getDownloadUrl(content.hash), '_blank')}>Download</button>
+                    </div>
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
       
       <!-- Results summary -->
-      <div class="text-center text-gray-600">
+      <div class="text-center text-zinc-600 dark:text-zinc-400">
         <p>Showing {filteredContent.length} of {$contentList.length} items</p>
       </div>
     {/if}
 
     {#if showFindModal}
-      <div class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-          <h3 class="text-xl font-bold mb-4">
+      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="card p-6 max-w-md w-full">
+          <h3 class="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-100">
             {#if foundContent}
               Content Found
             {:else}
@@ -229,11 +272,11 @@
               placeholder="Enter hash to find..."
               bind:value={findHashInput}
               on:keydown={(e) => { if (e.key === 'Enter') handleFindHash(); }}
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+              class="input flex-1"
             />
             <button
               on:click={handleFindHash}
-              class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              class="btn-primary bg-green-600 hover:bg-green-700"
             >
               Search Hash
             </button>
@@ -241,12 +284,12 @@
           {#if foundContent}
             <ContentCard content={foundContent} showPinActions={true} />
           {:else if findErrorMessage}
-            <p class="text-red-600 mb-4">{findErrorMessage}</p>
+            <p class="text-red-600 dark:text-red-400 mb-4">{findErrorMessage}</p>
           {/if}
           <div class="mt-4 flex justify-end">
             <button
               on:click={closeFindModal}
-              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              class="btn-secondary"
             >
               Close
             </button>

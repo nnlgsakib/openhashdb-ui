@@ -4,12 +4,16 @@
   import Layout from '$lib/components/Layout.svelte';
   import ConnectionModal from '$lib/components/ConnectionModal.svelte';
   import Notifications from '$lib/components/Notifications.svelte';
-  import { isConnected, apiBaseUrl, api, connectionError, pinnedList } from '$lib/stores';
+  import CommandPalette from '$lib/components/CommandPalette.svelte';
+  import QuickAddModal from '$lib/components/QuickAddModal.svelte';
+  import { isConnected, apiBaseUrl, api, connectionError, pinnedList, theme, sidebarCollapsed, commandPaletteOpen, openCommandPalette, quickAddOpen } from '$lib/stores';
 
   onMount(() => {
     // Activate the persistent stores
     apiBaseUrl.useLocalStorage();
     pinnedList.useLocalStorage();
+    theme.useLocalStorage();
+    sidebarCollapsed.useLocalStorage();
 
     let healthCheckInterval: NodeJS.Timeout;
     let pinsCheckInterval: NodeJS.Timeout;
@@ -47,6 +51,16 @@
       });
     }, 100);
 
+    // Keyboard shortcuts
+    const keyHandler = (e: KeyboardEvent) => {
+      // Ctrl/Cmd+K for command palette
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openCommandPalette();
+      }
+    };
+    window.addEventListener('keydown', keyHandler);
+
     // Periodic checks
     healthCheckInterval = setInterval(checkConnection, 15000); // every 15 seconds
     pinsCheckInterval = setInterval(checkPins, 60000); // every 60 seconds
@@ -54,11 +68,12 @@
     return () => {
       clearInterval(healthCheckInterval);
       clearInterval(pinsCheckInterval);
+      window.removeEventListener('keydown', keyHandler);
     };
   });
 </script>
 
-<div class="bg-gray-50 min-h-screen">
+<div class={$theme === 'dark' ? 'dark min-h-screen' : 'min-h-screen'}>
   <Layout>
     <slot />
   </Layout>
@@ -68,6 +83,10 @@
   {/if}
 
   <Notifications />
+  {#if $commandPaletteOpen}
+    <CommandPalette />
+  {/if}
+  {#if $quickAddOpen}
+    <QuickAddModal />
+  {/if}
 </div>
-
-
